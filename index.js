@@ -11,6 +11,8 @@ app.post("/execute", async (req, res) => {
     res.send("EXECUTED!")
 })
 
+console.log("to test")
+
 app.get("/", (req, res) => {
     res.send("HELLO")
 })
