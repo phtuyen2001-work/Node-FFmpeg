@@ -3,6 +3,7 @@ const app = express()
 const LOCAL_PORT = 3000
 const { ffmpeg, fetchFile, fsFFmpeg } = require("./ffmpeg");
 const { upload } = require("./storage");
+const path = require("path")
 
 app.use(express.json())
 
@@ -10,12 +11,38 @@ app.post("/api/upload", upload.array('input', 3), (req, res) => {
     console.log('file', req.files);
     console.log('body', req.body);
 
-    res.json({ msg: "uploaded" })
+    const result = req.files[0].filename.split(".")
+    res.json({
+        resourceId: result[0],
+        type: result[1]
+    })
 })
 
-app.post("/api/execute/:name", (req, res) => {
-    const { params } = req
+app.post("/api/execute/:id", async (req, res) => {
+    const { body } = req
+    // console.log(body);
+    // console.log(`${body.resourceId}.${body.type}`);
+    // res.json({ msg: "okay" })
+    const input = `${body.resourceId}.${body.type}`;
+    const command = body.command
+    const output = `output_${body.resourceId}.${body.type}`
 
+    ffmpeg.FS("writeFile", input, await fetchFile(`./input/${input}`))
+    await ffmpeg.run("-i", input, "-vf", command, output)
+    await fsFFmpeg.promises.writeFile(`./output/${output}`, ffmpeg.FS("readFile", output))
+
+    // const options = {
+    //     root: path.join(__dirname, "output")
+    // }
+
+    res.json({ msg: "done" })
+    // res.sendFile(output, options)
+})
+
+app.get("/api/download/:id", (req, res) => {
+    const { params } = req
+    console.log(params);
+    res.sendFile(`/output/output_${params}`)
 })
 
 app.post("/testExecute", async (req, res) => {
